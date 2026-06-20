@@ -1,7 +1,29 @@
 <?php
 
 // Dynamic Base URL
-define('BASEURL', isset($_SERVER['HTTP_HOST']) ? (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] : 'http://localhost/pos_mangkojek');
+if (isset($_SERVER['HTTP_HOST'])) {
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://');
+    
+    // Check if it's Vercel
+    if (strpos($_SERVER['HTTP_HOST'], 'vercel.app') !== false || getenv('VERCEL') !== false || isset($_SERVER['VERCEL'])) {
+        $base = $protocol . $_SERVER['HTTP_HOST'];
+    } else {
+        // Local environment (XAMPP or local server)
+        $script_name = $_SERVER['SCRIPT_NAME'];
+        $script_dir = str_replace('\\', '/', dirname($script_name));
+        $script_dir = rtrim($script_dir, '/');
+        
+        // Strip /api if accessed through api/index.php
+        if (substr($script_dir, -4) === '/api') {
+            $script_dir = substr($script_dir, 0, -4);
+        }
+        
+        $base = $protocol . $_SERVER['HTTP_HOST'] . $script_dir;
+    }
+    define('BASEURL', $base);
+} else {
+    define('BASEURL', 'http://localhost/pos_mangkojek');
+}
 
 // DB Constants
 define('DB_HOST', getenv('DB_HOST') ?: ($_SERVER['DB_HOST'] ?? 'localhost'));
