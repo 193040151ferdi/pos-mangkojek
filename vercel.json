@@ -12,7 +12,7 @@
     },
     {
       "src": "/((?!assets/).*)",
-      "dest": "/api/index.php"
+      "dest": "/api/index.php?url=$1"
     }
   ]
 }

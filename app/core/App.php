@@ -43,6 +43,37 @@ class App {
             $url = explode('/', $url);
             return $url;
         }
+
+        // Fallback for Vercel or other environments without URL rewrite query param
+        if (isset($_SERVER['REQUEST_URI'])) {
+            $requestUri = $_SERVER['REQUEST_URI'];
+            $path = explode('?', $requestUri)[0];
+            
+            // Strip project base subdirectory if present (e.g. on local XAMPP)
+            $scriptName = $_SERVER['SCRIPT_NAME'];
+            $scriptDir = dirname($scriptName);
+            $scriptDir = str_replace('\\', '/', $scriptDir);
+            
+            if ($scriptDir === '/api') {
+                $scriptDir = '';
+            } else if (substr($scriptDir, -4) === '/api') {
+                $scriptDir = substr($scriptDir, 0, -4);
+            }
+            
+            if ($scriptDir !== '/' && !empty($scriptDir)) {
+                if (strpos($path, $scriptDir) === 0) {
+                    $path = substr($path, strlen($scriptDir));
+                }
+            }
+            
+            $path = trim($path, '/');
+            if ($path !== '') {
+                $url = filter_var($path, FILTER_SANITIZE_URL);
+                $url = explode('/', $url);
+                return $url;
+            }
+        }
+
         return [];
     }
 }
