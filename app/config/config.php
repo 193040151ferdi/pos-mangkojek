@@ -30,7 +30,7 @@ if (isset($_SERVER['HTTP_HOST'])) {
 }
 
 // DB Constants
-define('DB_HOST', getenv('DB_HOST') ?: ($_SERVER['DB_HOST'] ?? 'localhost'));
-define('DB_USER', getenv('DB_USER') ?: ($_SERVER['DB_USER'] ?? 'root'));
-define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : ($_SERVER['DB_PASS'] ?? ''));
-define('DB_NAME', getenv('DB_NAME') ?: ($_SERVER['DB_NAME'] ?? 'pos_mangkojek'));
+define('DB_HOST', getenv('DB_HOST') ?: ($_SERVER['DB_HOST'] ?? 'sql12.freesqldatabase.com'));
+define('DB_USER', getenv('DB_USER') ?: ($_SERVER['DB_USER'] ?? 'sql12831040'));
+define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : ($_SERVER['DB_PASS'] ?? 'T4Px1GXHxs'));
+define('DB_NAME', getenv('DB_NAME') ?: ($_SERVER['DB_NAME'] ?? 'sql12831040'));
