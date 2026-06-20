@@ -2,7 +2,11 @@
 
 // Dynamic Base URL
 if (isset($_SERVER['HTTP_HOST'])) {
-    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://');
+    $protocol = 'http://';
+    if ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || 
+        (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')) {
+        $protocol = 'https://';
+    }
     
     // Check if it's Vercel
     if (strpos($_SERVER['HTTP_HOST'], 'vercel.app') !== false || getenv('VERCEL') !== false || isset($_SERVER['VERCEL'])) {
