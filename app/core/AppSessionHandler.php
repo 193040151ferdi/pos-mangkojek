@@ -4,21 +4,25 @@ class AppSessionHandler implements SessionHandlerInterface {
     private $pdo;
 
     public function open($savePath, $sessionName): bool {
-        $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME;
-        $this->pdo = new PDO($dsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-        ]);
-        
-        // Create sessions table if it doesn't exist
-        $this->pdo->exec("CREATE TABLE IF NOT EXISTS `sessions` (
-            `id` VARCHAR(255) NOT NULL,
-            `data` TEXT NOT NULL,
-            `timestamp` INT NOT NULL,
-            PRIMARY KEY (`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-        
-        return true;
+        try {
+            $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME;
+            $this->pdo = new PDO($dsn, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+            ]);
+            
+            // Create sessions table if it doesn't exist
+            $this->pdo->exec("CREATE TABLE IF NOT EXISTS `sessions` (
+                `id` VARCHAR(128) NOT NULL,
+                `data` TEXT NOT NULL,
+                `timestamp` INT NOT NULL,
+                PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            
+            return true;
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     public function close(): bool {
