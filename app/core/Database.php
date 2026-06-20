@@ -9,19 +9,35 @@ class Database {
     private $dbh;
     private $stmt;
 
-    public function __construct() {
-        $dsn = 'mysql:host=' . $this->host . ';dbname=' . $this->dbname;
+    private static $sharedPdo = null;
 
-        $options = [
-            PDO::ATTR_PERSISTENT => true,
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-        ];
+    public static function getSharedConnection() {
+        if (self::$sharedPdo === null) {
+            $host = DB_HOST;
+            $user = DB_USER;
+            $pass = DB_PASS;
+            $dbname = DB_NAME;
+            $dsn = 'mysql:host=' . $host . ';dbname=' . $dbname;
 
-        try {
-            $this->dbh = new PDO($dsn, $this->user, $this->pass, $options);
-        } catch (PDOException $e) {
-            die($e->getMessage());
+            $isVercel = (getenv('VERCEL') !== false || isset($_SERVER['VERCEL']) || (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'vercel.app') !== false));
+            
+            $options = [
+                PDO::ATTR_PERSISTENT => !$isVercel,
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+            ];
+
+            try {
+                self::$sharedPdo = new PDO($dsn, $user, $pass, $options);
+            } catch (PDOException $e) {
+                die("Database Connection Error: " . $e->getMessage());
+            }
         }
+        return self::$sharedPdo;
+    }
+
+    public function __construct() {
+        $this->dbh = self::getSharedConnection();
     }
 
     public function query($sql) {

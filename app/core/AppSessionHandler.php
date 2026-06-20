@@ -2,23 +2,14 @@
 
 class AppSessionHandler implements SessionHandlerInterface {
     private $pdo;
+    private $originalData = '';
+    private $originalTimestamp = 0;
 
     public function open($savePath, $sessionName): bool {
         try {
-            $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME;
-            $this->pdo = new PDO($dsn, DB_USER, DB_PASS, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-            ]);
-            
-            // Create sessions table if it doesn't exist
-            $this->pdo->exec("CREATE TABLE IF NOT EXISTS `sessions` (
-                `id` VARCHAR(128) NOT NULL,
-                `data` TEXT NOT NULL,
-                `timestamp` INT NOT NULL,
-                PRIMARY KEY (`id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-            
+            // Require Database class to reuse the shared PDO connection
+            require_once __DIR__ . '/Database.php';
+            $this->pdo = Database::getSharedConnection();
             return true;
         } catch (Exception $e) {
             return false;
@@ -32,10 +23,17 @@ class AppSessionHandler implements SessionHandlerInterface {
 
     public function read($id): string {
         try {
-            $stmt = $this->pdo->prepare("SELECT `data` FROM `sessions` WHERE `id` = :id");
+            $stmt = $this->pdo->prepare("SELECT `data`, `timestamp` FROM `sessions` WHERE `id` = :id");
             $stmt->execute([':id' => $id]);
             $row = $stmt->fetch();
-            return $row ? $row['data'] : '';
+            if ($row) {
+                $this->originalData = $row['data'];
+                $this->originalTimestamp = (int)$row['timestamp'];
+                return $row['data'];
+            }
+            $this->originalData = '';
+            $this->originalTimestamp = 0;
+            return '';
         } catch (Exception $e) {
             return '';
         }
@@ -43,12 +41,17 @@ class AppSessionHandler implements SessionHandlerInterface {
 
     public function write($id, $data): bool {
         try {
-            $timestamp = time();
+            $currentTime = time();
+            // Optimize: skip writing if session data hasn't changed and the session is less than 5 minutes old
+            if ($data === $this->originalData && $this->originalTimestamp > 0 && ($currentTime - $this->originalTimestamp) < 300) {
+                return true;
+            }
+
             $stmt = $this->pdo->prepare("REPLACE INTO `sessions` (`id`, `data`, `timestamp`) VALUES (:id, :data, :timestamp)");
             return $stmt->execute([
                 ':id' => $id,
                 ':data' => $data,
-                ':timestamp' => $timestamp
+                ':timestamp' => $currentTime
             ]);
         } catch (Exception $e) {
             return false;

@@ -41,7 +41,7 @@
                                 <?php if ($produk['stok'] <= 0): ?>
                                     <img class="out-of-stock-stamp" src="<?= BASEURL; ?>/assets/img/stok_habis.png" alt="STOK HABIS">
                                 <?php endif; ?>
-                                <?php if (!empty($produk['gambar']) && file_exists("assets/img/products/" . $produk['gambar'])): ?>
+                                <?php if (!empty($produk['gambar']) && file_exists(ROOTPATH . "/assets/img/products/" . $produk['gambar'])): ?>
                                     <img src="<?= BASEURL; ?>/assets/img/products/<?= $produk['gambar']; ?>" alt="<?= htmlspecialchars($produk['nama_produk']); ?>">
                                 <?php else: ?>
                                     <div class="pos-product-img-placeholder">

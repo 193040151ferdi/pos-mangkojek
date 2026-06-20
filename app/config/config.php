@@ -34,3 +34,6 @@ define('DB_HOST', getenv('DB_HOST') ?: ($_SERVER['DB_HOST'] ?? 'sql12.freesqldat
 define('DB_USER', getenv('DB_USER') ?: ($_SERVER['DB_USER'] ?? 'sql12831040'));
 define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : ($_SERVER['DB_PASS'] ?? 'T4Px1GXHxs'));
 define('DB_NAME', getenv('DB_NAME') ?: ($_SERVER['DB_NAME'] ?? 'sql12831040'));
+
+// Absolute Project Root Path
+define('ROOTPATH', dirname(__DIR__, 2));
