@@ -1,0 +1,19 @@
+# Editor/IDE directories
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# System files
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.stackdump
+*.tmp
+
+# Logs
+*.log
