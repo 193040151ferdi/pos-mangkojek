@@ -1,85 +1,84 @@
 <?php
 
 class AppSessionHandler implements SessionHandlerInterface {
-    private $pdo;
+    private $cookieName = 'POS_SESS';
+    private $key;
     private $originalData = '';
-    private $originalTimestamp = 0;
+
+    public function __construct() {
+        // Use database password and name as the secret key for encryption
+        $this->key = hash('sha256', DB_PASS . DB_NAME, true);
+    }
 
     public function open($savePath, $sessionName): bool {
-        try {
-            // Require Database class to reuse the shared PDO connection
-            require_once __DIR__ . '/Database.php';
-            $this->pdo = Database::getSharedConnection();
-            return true;
-        } catch (Exception $e) {
-            return false;
-        }
+        return true;
     }
 
     public function close(): bool {
-        $this->pdo = null;
         return true;
     }
 
     public function read($id): string {
-        try {
-            $stmt = $this->pdo->prepare("SELECT `data`, `timestamp` FROM `sessions` WHERE `id` = :id");
-            $stmt->execute([':id' => $id]);
-            $row = $stmt->fetch();
-            if ($row) {
-                $this->originalData = $row['data'];
-                $this->originalTimestamp = (int)$row['timestamp'];
-                return $row['data'];
+        if (isset($_COOKIE[$this->cookieName])) {
+            $encryptedData = $_COOKIE[$this->cookieName];
+            $decrypted = $this->decrypt($encryptedData);
+            if ($decrypted !== false) {
+                $this->originalData = $decrypted;
+                return $decrypted;
             }
-            $this->originalData = '';
-            $this->originalTimestamp = 0;
-            return '';
-        } catch (Exception $e) {
-            return '';
         }
+        $this->originalData = '';
+        return '';
     }
 
     public function write($id, $data): bool {
-        try {
-            $currentTime = time();
-            // Optimize: skip writing if session data hasn't changed and the session is less than 5 minutes old
-            if ($data === $this->originalData && $this->originalTimestamp > 0 && ($currentTime - $this->originalTimestamp) < 300) {
-                return true;
-            }
-
-            $stmt = $this->pdo->prepare("REPLACE INTO `sessions` (`id`, `data`, `timestamp`) VALUES (:id, :data, :timestamp)");
-            return $stmt->execute([
-                ':id' => $id,
-                ':data' => $data,
-                ':timestamp' => $currentTime
-            ]);
-        } catch (Exception $e) {
-            return false;
+        // Skip writing if the data has not changed
+        if ($data === $this->originalData) {
+            return true;
         }
+
+        $encrypted = $this->encrypt($data);
+        
+        // Set cookie (expire in 1 day, secure, httponly, samesite Lax)
+        setcookie($this->cookieName, $encrypted, [
+            'expires' => time() + 86400,
+            'path' => '/',
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+        return true;
     }
 
     public function destroy($id): bool {
-        try {
-            $stmt = $this->pdo->prepare("DELETE FROM `sessions` WHERE `id` = :id");
-            return $stmt->execute([':id' => $id]);
-        } catch (Exception $e) {
-            return false;
-        }
+        // Delete cookie by setting expiry in the past
+        setcookie($this->cookieName, '', time() - 3600, '/');
+        return true;
     }
 
     public function gc($maxLifetime): int {
-        try {
-            $old = time() - $maxLifetime;
-            $stmt = $this->pdo->prepare("DELETE FROM `sessions` WHERE `timestamp` < :old");
-            $stmt->execute([':old' => $old]);
-            return $stmt->rowCount();
-        } catch (Exception $e) {
-            return 0;
+        return 0;
+    }
+
+    private function encrypt($data) {
+        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+        $encrypted = openssl_encrypt($data, 'aes-256-cbc', $this->key, 0, $iv);
+        return base64_encode($iv . $encrypted);
+    }
+
+    private function decrypt($data) {
+        $data = base64_decode($data);
+        $ivLength = openssl_cipher_iv_length('aes-256-cbc');
+        if (strlen($data) <= $ivLength) {
+            return false;
         }
+        $iv = substr($data, 0, $ivLength);
+        $encrypted = substr($data, $ivLength);
+        return openssl_decrypt($encrypted, 'aes-256-cbc', $this->key, 0, $iv);
     }
 
     public static function register() {
-        // Only use DB session handler on Vercel
+        // Only use custom session handler on Vercel
         if (getenv('VERCEL') !== false || isset($_SERVER['VERCEL']) || (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'vercel.app') !== false)) {
             $handler = new self();
             session_set_save_handler($handler, true);
