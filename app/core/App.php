@@ -10,13 +10,13 @@ class App {
 
         // Check controller file
         if (isset($url[0])) {
-            if (file_exists('app/controllers/' . ucfirst($url[0]) . '.php')) {
+            if (file_exists(dirname(__DIR__, 2) . '/app/controllers/' . ucfirst($url[0]) . '.php')) {
                 $this->controller = ucfirst($url[0]);
                 unset($url[0]);
             }
         }
 
-        require_once 'app/controllers/' . $this->controller . '.php';
+        require_once dirname(__DIR__, 2) . '/app/controllers/' . $this->controller . '.php';
         $this->controller = new $this->controller;
 
         // Check method
